@@ -7,11 +7,12 @@ mkdir /opt/kata
 ```
 
 2) Edit the KATA_PARAMS.YAML file by substituting the necessary KATA node IP addresses and generate unique [UUIDs](https://www.uuidgenerator.net/version1)
-for them, respectively. The service can collect events from multiple KATA nodes
+for them, respectively. The service can collect events from multiple KATA nodes. Also add the IP address of the device (broker) that will receive events on syslog-ng.
 ```
 kata_installations:
   - kata_ip_address: 192.168.1.1
     UUID: b67a6284-057d-11f0-9cd2-0242ac120002
+broker_ip: 192.168.1.4
 ```
 
 4) It is necessary to install dependencies requirements.txt
