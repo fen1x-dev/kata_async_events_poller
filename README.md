@@ -27,4 +27,4 @@ sudo python3 /opt/kata/kata_api_poller_new.py
 
 # DEBUG
 
-You can view the service logs on the path /opt/kata/
+You can view the service logs on the path /opt/kata/log
