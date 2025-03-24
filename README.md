@@ -1,4 +1,5 @@
 # KATA_API_POLLER
+## INSTALLATION
 A Linux service that accesses KATA via the API and [receives events](https://support.kaspersky.com/help/KATA/5.1/ru-RU/248951.htm), after which it sends the received events to 514/UDP port syslog-ng
 
 1) Create a folder on the path **/opt/kata** and put all the files from the repository there:
@@ -26,11 +27,11 @@ pip install -r requirements.txt
 sudo python3 /opt/kata/kata_api_poller_new.py
 ```
 
-# DEBUG
+## DEBUG
 
 You can view the service logs on the path **/opt/kata/log**
 
-# Uninstall
+## Uninstall
 
 _Run_ **kata_api_poller_uninstaller.py** with **sudo**, as it requires access to **systemctl** and deletion of system files.
 ```
