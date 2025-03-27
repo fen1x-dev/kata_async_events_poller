@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 5) _Run_ the script from under **sudo** rights
 ```
-sudo python3 /opt/kata/kata_api_poller_new.py
+sudo python3 /opt/kata/kata_api_poller.py  # The file name can be any
 ```
 
 ## DEBUG
