@@ -10,12 +10,12 @@ import time
 import yaml
 from datetime import datetime
 
-PROGRAM_PATH = "/opt/kata/"  # <- директория cо скриптом
+PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентами программы
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
 TMP_PATH = f"{PROGRAM_PATH}tmp/"  # <- директория с токенами для запросов в KATA
-SERVICE_PATH = f"/etc/systemd/system/kata_api.service"  # <- путь к сервису KATA
-CERT_PATH = f"{PROGRAM_PATH}cert/"  # <- директория с самоподписанным сертификатом и приватным ключом
+SERVICE_PATH = f"/etc/systemd/system/kata_api.service"
+CERT_PATH = f"{PROGRAM_PATH}cert/"  # <- директория с сертификатом и приватным ключом
 PRIVATE_KEY = f"{CERT_PATH}kata_key.key"
 KATA_CERT_REQ = f"{CERT_PATH}kata_cert_req.csr"
 KATA_CERT = f"{CERT_PATH}kata_cert.crt"
@@ -27,9 +27,9 @@ SYSLOG_PORT = 514  # <- порт для отправки событий syslog �
 
 
 if not os.path.exists(KATA_POLLER_LOG_PATH):
-    # Создание папки с логами KATA по пути /opt/kata/log
+    # Создание директории с логами KATA по пути /opt/kata/log
     os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
-    logging.info(f"INFO: Успешно создана папка с логами по пути {KATA_POLLER_LOG_PATH}.")
+    logging.info(f"INFO: Успешно создана директория с логами по пути {KATA_POLLER_LOG_PATH}.")
 
 logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
 
@@ -67,19 +67,26 @@ with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
                 f"в конфигурационном файле: {KATA_PARAMS_FILE} для инсталляции KATA с IP-адресом {kata_ip_validate}.")
             sys.exit(1)
 
+    CA_FILE_PATH = installations_info.get("ca_file_path", False)
+    if not CA_FILE_PATH:
+        logging.info("INFO: Файл с корневым CA не обнаружен.")
+
     logging.info("INFO: Успешно распаршен конфиг с параметрами для скрипта.")
 
 if not os.path.exists(TMP_PATH):
-    # Создание tmp папки для токенов KATA по пути /opt/kata/tmp
+    # Создание tmp директории для токенов KATA по пути /opt/kata/tmp
     os.makedirs(TMP_PATH, exist_ok=True)
-    logging.info(f"INFO: Успешно создана tmp папка для токенов KATA по пути {TMP_PATH}.")
+    logging.info(f"INFO: Успешно создана tmp директория для токенов KATA по пути {TMP_PATH}.")
+    
+if not os.path.exists(CERT_PATH):
+    # Создание cert директории с сертификатами для запросов в KATA по пути /opt/kata/cert
+    os.makedirs(CERT_PATH, exist_ok=True)
+    logging.info(f"INFO: Успешно создана cert директория с сертификатами для запросов в KATA по пути {CERT_PATH}.")
 
 
 def generating_tls_certificate():
     """Генерирует приватный ключ и самоподписанный TLS сертификат"""
 
-    if not os.path.exists(CERT_PATH):
-        os.makedirs(CERT_PATH, exist_ok=True)
     subprocess.run(["openssl", "genrsa", "-out", f"{PRIVATE_KEY}", "2048"])
     subprocess.run(
         ["openssl", "req", "-sha256", "-new", "-key", f"{PRIVATE_KEY}", "-out",
@@ -141,7 +148,7 @@ async def fetch_events(session, kata_instance: dict):
     if not os.path.exists(local_kata_response_token) or not os.path.getsize(local_kata_response_token):
         # Проверка на наличие токена (если его нет, то инициируется первый запрос, в котором вернётся токен)
         try:
-            async with session.get(url, cert=(TLS_CERTIFICATE, PRIVATE_KEY), verify=False) as response:
+            async with session.get(url, cert=(TLS_CERTIFICATE, PRIVATE_KEY), verify=CA_FILE_PATH) as response:
                 response.raise_for_status()
         except Exception as e:
             logging.error(f"ERROR:Ошибка при получении данных от {kata_ip}: {e}")
@@ -181,7 +188,7 @@ async def fetch_events(session, kata_instance: dict):
 
     try:
         async with session.get(url, params=kata_req_params,
-                               cert=(TLS_CERTIFICATE, PRIVATE_KEY), verify=False) as response:
+                               cert=(TLS_CERTIFICATE, PRIVATE_KEY), verify=CA_FILE_PATH) as response:
             response.raise_for_status()
     except Exception as e:
         logging.error(f"ERROR:Ошибка при получении данных от {kata_ip}: {e}")
