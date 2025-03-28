@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import aiofiles
 import aiohttp
 import asyncio
@@ -14,7 +15,7 @@ PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентам
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
 TMP_PATH = f"{PROGRAM_PATH}tmp/"  # <- директория с токенами для запросов в KATA
-SERVICE_PATH = f"/etc/systemd/system/kata_api.service"  # <- путь к сервису KATA
+SERVICE_PATH = f"/etc/systemd/system/kata_api.service"
 CERT_PATH = f"{PROGRAM_PATH}cert/"  # <- директория с сертификатом и приватным ключом
 PRIVATE_KEY = f"{CERT_PATH}kata_key.key"
 KATA_CERT_REQ = f"{CERT_PATH}kata_cert_req.csr"
@@ -34,11 +35,11 @@ if not os.path.exists(KATA_POLLER_LOG_PATH):
 logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
 
 if not os.path.exists(KATA_PARAMS_FILE):
-    logging.info(f"ERROR: Отсутсвует файл с зависимостями {REQUIREMENTS_FILE}.")
+    logging.info(f"ERROR: Отсутствует файл с зависимостями {REQUIREMENTS_FILE}.")
     sys.exit(1)
 
 if not os.path.exists(KATA_PARAMS_FILE):
-    logging.info(f"ERROR: Отсутсвует конфигурационный файл по пути {KATA_PARAMS_FILE}.")
+    logging.info(f"ERROR: Отсутствует конфигурационный файл по пути {KATA_PARAMS_FILE}.")
     sys.exit(1)
 
 # Парсинг YAML файла для получения информации о сервисах
@@ -50,20 +51,20 @@ with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
         sys.exit(1)
     BROKER_IP = installations_info.get("broker_ip", None)
     if not BROKER_IP:
-        logging.info(f"ERROR: Отсутсвует параметр 'broker_ip' в конфигурационном файле: {KATA_PARAMS_FILE}.")
+        logging.info(f"ERROR: Отсутствует параметр 'broker_ip' в конфигурационном файле: {KATA_PARAMS_FILE}.")
         sys.exit(1)
 
     for i_installation in KATA_INSTANCES:
         kata_ip_validate = i_installation.get('kata_ip_address', None)
         if not kata_ip_validate:
             logging.info(
-                "ERROR: Отсутсвует IP-адрес в массиве 'kata_installations' "
+                "ERROR: Отсутствует IP-адрес в массиве 'kata_installations' "
                 f"в конфигурационном файле: {KATA_PARAMS_FILE}.")
             sys.exit(1)
         kata_uuid_validate = i_installation.get('UUID', None)
         if not kata_uuid_validate:
             logging.info(
-                "ERROR: Отсутсвует идентификатор UUID в массиве 'kata_installations' "
+                "ERROR: Отсутствует идентификатор UUID в массиве 'kata_installations' "
                 f"в конфигурационном файле: {KATA_PARAMS_FILE} для инсталляции KATA с IP-адресом {kata_ip_validate}.")
             sys.exit(1)
 
