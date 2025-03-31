@@ -16,7 +16,7 @@ kata_installations:
     UUID: b67a6284-057d-11f0-9cd2-0242ac120002
 broker_ip: 192.168.1.4
 ```
-_Optional_: if there is a need to use _trusted certificates_, then they must be located along the path /opt/kata/cert. The certificate and key must _**strictly**_ have the names **kata_cert.pem** and **kata_key.the key**, respectively. You also need to add the ca_file_path parameter to the KATA_PARAMS.YAML configuration file. with the **absolute path** to the root CA file. The structure required for the operation of the service is presented below:
+_Optional_: if there is a need to use _trusted certificates_, then they must be located along the path /opt/kata/cert. The certificate and key must _**strictly**_ have the names **kata_cert.pem** and **kata_key.key**, respectively. You also need to add the ca_file_path parameter to the KATA_PARAMS.YAML configuration file. with the **absolute path** to the root CA file. The structure required for the operation of the service is presented below:
 ```
 kata_installations:
   - kata_ip_address: 192.168.1.1
