@@ -5,6 +5,7 @@ import asyncio
 import logging
 import os
 import re
+import ssl
 import subprocess
 import sys
 import time
@@ -30,7 +31,6 @@ SYSLOG_PORT = 514  # <- порт для отправки событий syslog �
 if not os.path.exists(KATA_POLLER_LOG_PATH):
     # Создание директории с логами KATA по пути /opt/kata/log
     os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
-    logging.info(f"INFO: Успешно создана директория с логами по пути {KATA_POLLER_LOG_PATH}.")
 
 logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
 
@@ -68,7 +68,7 @@ with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
                 f"в конфигурационном файле: {KATA_PARAMS_FILE} для инсталляции KATA с IP-адресом {kata_ip_validate}.")
             sys.exit(1)
 
-    CA_FILE_PATH = installations_info.get("ca_file_path", False)
+    CA_FILE_PATH = installations_info.get("ca_file_path", None)
     if not CA_FILE_PATH:
         logging.info("INFO: Файл с корневым CA не обнаружен.")
 
@@ -149,7 +149,16 @@ async def fetch_events(session, kata_instance: dict):
     if not os.path.exists(local_kata_response_token) or not os.path.getsize(local_kata_response_token):
         # Проверка на наличие токена (если его нет, то инициируется первый запрос, в котором вернётся токен)
         try:
-            async with session.get(url, cert=(TLS_CERTIFICATE, PRIVATE_KEY), verify=CA_FILE_PATH) as response:
+            if CA_FILE_PATH:
+                ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
+            else:
+                ssl_context = ssl.create_default_context()
+                ssl_context.check_hostname = False
+                ssl_context.verify_mode = ssl.CERT_NONE
+
+            ssl_context.load_cert_chain(TLS_CERTIFICATE, PRIVATE_KEY)
+
+            async with session.get(url, ssl=ssl_context) as response:
                 response.raise_for_status()
         except Exception as e:
             logging.error(f"ERROR:Ошибка при получении данных от {kata_ip}: {e}")
@@ -188,8 +197,16 @@ async def fetch_events(session, kata_instance: dict):
     }
 
     try:
-        async with session.get(url, params=kata_req_params,
-                               cert=(TLS_CERTIFICATE, PRIVATE_KEY), verify=CA_FILE_PATH) as response:
+        if CA_FILE_PATH:
+            ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
+        else:
+            ssl_context = ssl.create_default_context()
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+        ssl_context.load_cert_chain(TLS_CERTIFICATE, PRIVATE_KEY)
+
+        async with session.get(url, params=kata_req_params, ssl=ssl_context) as response:
             response.raise_for_status()
     except Exception as e:
         logging.error(f"ERROR:Ошибка при получении данных от {kata_ip}: {e}")
@@ -246,7 +263,7 @@ async def send_to_syslog(events: list, kata_ip_address: str):
             for i_event in events:
                 if 'Ioa' not in i_event:
                     continue
-                if re.search(r'T\d{4}\w+', i_event.get(["Ioa"]["Rules"][0]["Name"])):
+                if re.search(r'T\d{4}\w+', i_event.get("Ioa", {}).get("Rules", [{}])[0].get("Name", "")):
                     continue
                 log_message = format_syslog_message(i_event, kata_ip_address)
                 writer.write(log_message.encode('utf-8') + b'\n')
