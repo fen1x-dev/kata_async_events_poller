@@ -160,8 +160,17 @@ async def fetch_events(session, kata_instance: dict):
 
             async with session.get(url, ssl=ssl_context) as response:
                 response.raise_for_status()
+        except aiohttp.ClientResponseError as e:
+            if e.status == 401:
+                logging.info("INFO: Статус - Unauthorized. "
+                             "Ожидается подтверждение администратором KATA обработки запросов от внешней системы"
+                             f" на хосте {kata_ip}")
+            else:
+                logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
+            return
+
         except Exception as e:
-            logging.error(f"ERROR:Ошибка при получении данных от {kata_ip}: {e}")
+            logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
             return
 
         if not response.text:
@@ -169,12 +178,6 @@ async def fetch_events(session, kata_instance: dict):
             return
 
         response_json_format = response.json()
-
-        if "error" in list(response_json_format.keys()) and response_json_format.get("error") == "Unauthorized":
-            logging.info("INFO: Статус: Unauthorized. "
-                         "Ожидается подтверждение администратором KATA обработки запросов от внешней системы"
-                         f" на хосте {kata_ip}")
-            return
 
         async with aiofiles.open(local_kata_response_token, "w") as token_file:
             await token_file.write(response_json_format.get("continuationToken"))
@@ -208,8 +211,16 @@ async def fetch_events(session, kata_instance: dict):
 
         async with session.get(url, params=kata_req_params, ssl=ssl_context) as response:
             response.raise_for_status()
+    except aiohttp.ClientResponseError as e:
+        if e.status == 401:
+            logging.info(f"WARN: Статус: Unauthorized. Пропал доступ к API на хосте {kata_ip}. "
+                         "Ожидается подтверждение администратором KATA обработки запросов от внешней системы.")
+        else:
+            logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
+        return
+
     except Exception as e:
-        logging.error(f"ERROR:Ошибка при получении данных от {kata_ip}: {e}")
+        logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
         return
 
     if not response.text:
@@ -217,10 +228,6 @@ async def fetch_events(session, kata_instance: dict):
         return
 
     response_json_format = response.json()
-
-    if 'error' in list(response_json_format.keys()) and response_json_format.get("error") == 'Unauthorized':
-        logging.info(f"WARN: Статус: Unauthorized. Пропал доступ к API на хосте {kata_ip}. "
-                     "Ожидается подтверждение администратором KATA обработки запросов от внешней системы.")
 
     async with aiofiles.open(local_kata_response_token, "w") as token_file:
         await token_file.write(response_json_format['continuationToken'])
