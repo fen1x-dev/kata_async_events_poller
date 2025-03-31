@@ -1,6 +1,6 @@
 # KATA_API_POLLER
 ## INSTALLATION
-A Linux service that accesses KATA via the API and [receives events](https://support.kaspersky.com/help/KATA/5.1/ru-RU/248951.htm), after which it sends the received events to 514/UDP port syslog-ng
+A Linux service that accesses KATA via the [API](https://support.kaspersky.com/help/KATA/7.0/ru-RU/248951.htm) and receives events, after which it sends the received events to 514/UDP port syslog-ng
 
 1) Create a folder on the path **/opt/kata** and put all the files from the repository there:
 ```
