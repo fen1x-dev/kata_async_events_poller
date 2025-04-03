@@ -324,7 +324,7 @@ if __name__ == "__main__":
     if not os.path.exists(TLS_CERTIFICATE) or not os.path.exists(PRIVATE_KEY):
         # Проверка на наличие сертификата и ключа
         generating_tls_certificate()
-    logging.info("INFO: Самоподписанный TLS сертификат и приватный ключ обнаружены.")
+    logging.info("INFO: TLS сертификат и приватный ключ обнаружены.")
 
     asyncio.run(main())
 
