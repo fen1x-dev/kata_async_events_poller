@@ -31,6 +31,8 @@ SYSLOG_PORT = 514  # <- порт для отправки событий syslog �
 if not os.path.exists(KATA_POLLER_LOG_PATH):
     # Создание директории с логами KATA по пути /opt/kata/log
     os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
+    with open(f'{KATA_POLLER_LOG_FILE}', 'w+') as file:
+        file.write(f"INFO: Создан файл для логирования сервиса {os.path.basename(__file__)}")
 
 logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
 
@@ -329,6 +331,7 @@ if __name__ == "__main__":
     asyncio.run(main())
 
     if os.path.exists(KATA_POLLER_LOG_FILE) and os.path.getsize(KATA_POLLER_LOG_FILE) > 5 * 1024 * 1024:
+        # Очистка лог файла, если размер > 5 МБ
         open(KATA_POLLER_LOG_FILE, "w").close()
         logging.info("INFO: Файл логов очищен, так как его размер превышал 5 МБ.")
 
