@@ -2,6 +2,7 @@
 import aiofiles
 import aiohttp
 import asyncio
+import json
 import logging
 import os
 import re
@@ -144,24 +145,25 @@ async def fetch_events(session, kata_instance: dict):
     kata_ip = kata_instance.get("kata_ip_address")
     kata_uuid = kata_instance.get('UUID')
 
-    url = f"https://{kata_ip}:443/kata/events_api/v1/{kata_uuid}/events"
+    url = f"https://{kata_ip}/kata/events_api/v1/{kata_uuid}/events"
 
     local_kata_response_token = KATA_RESPONSE_TOKEN.format(prog_tmp_dir=TMP_PATH, kata_inst=kata_ip)
 
     if not os.path.exists(local_kata_response_token) or not os.path.getsize(local_kata_response_token):
         # Проверка на наличие токена (если его нет, то инициируется первый запрос, в котором вернётся токен)
+        logging.info(f"INFO: Токен авторизации для хоста {kata_ip} не обнаружен.")
+
         try:
             if CA_FILE_PATH:
                 ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
             else:
-                ssl_context = ssl.create_default_context()
-                ssl_context.check_hostname = False
-                ssl_context.verify_mode = ssl.CERT_NONE
-
-            ssl_context.load_cert_chain(TLS_CERTIFICATE, PRIVATE_KEY)
+                ssl_context = ssl._create_unverified_context()
+            ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
 
             async with session.get(url, ssl=ssl_context) as response:
                 response.raise_for_status()
+                response_text = await response.text()
+                response_json_format = json.loads(response_text)
         except aiohttp.ClientResponseError as e:
             if e.status == 401:
                 logging.info("INFO: Статус - Unauthorized. "
@@ -169,24 +171,14 @@ async def fetch_events(session, kata_instance: dict):
                              f" на хосте {kata_ip}")
             else:
                 logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
-            return
-
-        except Exception as e:
-            logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
-            return
-
-        if not response.text:
-            logging.info(f"ERROR: Запрос по API от {kata_ip} вернул пустое значение.")
-            return
-
-        response_json_format = response.json()
+                sys.exit(1)
 
         async with aiofiles.open(local_kata_response_token, "w") as token_file:
             await token_file.write(response_json_format.get("continuationToken"))
 
         logging.info(f"INFO: Успешно получен токен авторизации для хоста {kata_ip}.")
 
-        return await response_json_format
+        await send_to_syslog(response_json_format.get("events"), kata_ip)
 
     continuation_token = None
     if os.path.exists(local_kata_response_token):
@@ -194,10 +186,10 @@ async def fetch_events(session, kata_instance: dict):
             continuation_token = (await f.read()).strip()
     else:
         logging.info(f"ERROR: Отсутствует токен авторизации для хоста {kata_ip}.")
-        return
+        sys.exit(1)
 
     kata_req_params = {
-        "max_timeout": "PT30S",
+        "max_timeout": "PT60S",
         "continuation_token": continuation_token
     }
 
@@ -205,14 +197,13 @@ async def fetch_events(session, kata_instance: dict):
         if CA_FILE_PATH:
             ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
         else:
-            ssl_context = ssl.create_default_context()
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-
-        ssl_context.load_cert_chain(TLS_CERTIFICATE, PRIVATE_KEY)
+            ssl_context = ssl._create_unverified_context()
+        ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
 
         async with session.get(url, params=kata_req_params, ssl=ssl_context) as response:
             response.raise_for_status()
+            response_text = await response.text()
+            response_json_format = json.loads(response_text)
     except aiohttp.ClientResponseError as e:
         if e.status == 401:
             logging.info(f"WARN: Статус: Unauthorized. Пропал доступ к API на хосте {kata_ip}. "
@@ -224,12 +215,6 @@ async def fetch_events(session, kata_instance: dict):
     except Exception as e:
         logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
         return
-
-    if not response.text:
-        logging.info("ERROR: Запрос по API вернул пустое значение.")
-        return
-
-    response_json_format = response.json()
 
     async with aiofiles.open(local_kata_response_token, "w") as token_file:
         await token_file.write(response_json_format['continuationToken'])
@@ -286,7 +271,7 @@ async def send_to_syslog(events: list, kata_ip_address: str):
         healthcheck_message = format_syslog_message(healthcheck_event, kata_ip_address)
         writer.write(healthcheck_message.encode('utf-8') + b'\n')
         await writer.drain()
-        logging.info(f"INFO: Отправлено healthcheck-сообщение c KATA {kata_ip_address} в Syslog.")
+        logging.info(f"INFO: Отправлено healthcheck-сообщение c KATA {kata_ip_address} на syslog-сервер.")
 
         logging.info(f"INFO: Все события c KATA {kata_ip_address} отправлены на порт {SYSLOG_PORT}/TCP брокера.")
 
