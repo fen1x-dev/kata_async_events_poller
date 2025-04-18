@@ -152,6 +152,7 @@ async def fetch_events(session, kata_instance: dict):
     if not os.path.exists(local_kata_response_token) or not os.path.getsize(local_kata_response_token):
         # Проверка на наличие токена (если его нет, то инициируется первый запрос, в котором вернётся токен)
         logging.info(f"INFO: Токен авторизации для хоста {kata_ip} не обнаружен.")
+        logging.info(f"INFO: Направлен первичный запрос в {kata_ip} для получения токена, ожидается ответ.")
 
         try:
             if CA_FILE_PATH:
@@ -166,7 +167,7 @@ async def fetch_events(session, kata_instance: dict):
                 response_json_format = json.loads(response_text)
         except aiohttp.ClientResponseError as e:
             if e.status == 401:
-                logging.info("INFO: Статус - Unauthorized. "
+                logging.info("WARN: Статус - Unauthorized. "
                              "Ожидается подтверждение администратором KATA обработки запросов от внешней системы"
                              f" на хосте {kata_ip}")
             else:
@@ -176,7 +177,7 @@ async def fetch_events(session, kata_instance: dict):
         async with aiofiles.open(local_kata_response_token, "w") as token_file:
             await token_file.write(response_json_format.get("continuationToken"))
 
-        logging.info(f"INFO: Успешно получен токен авторизации для хоста {kata_ip}.")
+        logging.info(f"INFO: Ответ получен. Успешно получен токен авторизации для хоста {kata_ip}.")
 
         await send_to_syslog(response_json_format.get("events"), kata_ip)
 
@@ -192,6 +193,8 @@ async def fetch_events(session, kata_instance: dict):
         "max_timeout": "PT60S",
         "continuation_token": continuation_token
     }
+
+    logging.info(f"INFO: Отправление запроса в {kata_ip} с токеном, ожидается ответ.")
 
     try:
         if CA_FILE_PATH:
@@ -218,7 +221,7 @@ async def fetch_events(session, kata_instance: dict):
 
     async with aiofiles.open(local_kata_response_token, "w") as token_file:
         await token_file.write(response_json_format['continuationToken'])
-    logging.info(f"INFO: Успешно записан новый токен авторизации для {kata_ip}.")
+    logging.info(f"INFO: Ответ получен. Успешно записан новый токен авторизации для {kata_ip}.")
 
     await send_to_syslog(response_json_format.get("events"), kata_ip)
 
