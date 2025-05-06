@@ -13,6 +13,8 @@ import time
 import yaml
 from datetime import datetime
 
+__version__ = "1.0.0"
+__date__ = "2025-05-06"
 PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентами программы
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
@@ -36,6 +38,8 @@ if not os.path.exists(KATA_POLLER_LOG_PATH):
         file.write(f"INFO: Создан файл для логирования сервиса {os.path.basename(__file__)}")
 
 logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
+
+logging.info(f"INFO: Версия скрипта: {__version__}. Дата обновления скрипта: {__date__}.")
 
 if not os.path.exists(KATA_PARAMS_FILE):
     logging.info(f"ERROR: Отсутствует файл с зависимостями {REQUIREMENTS_FILE}.")
@@ -81,7 +85,7 @@ if not os.path.exists(TMP_PATH):
     # Создание tmp директории для токенов KATA по пути /opt/kata/tmp
     os.makedirs(TMP_PATH, exist_ok=True)
     logging.info(f"INFO: Успешно создана tmp директория для токенов KATA по пути {TMP_PATH}.")
-    
+
 if not os.path.exists(CERT_PATH):
     # Создание cert директории с сертификатами для запросов в KATA по пути /opt/kata/cert
     os.makedirs(CERT_PATH, exist_ok=True)
@@ -218,7 +222,6 @@ async def fetch_events(session, kata_instance: dict):
     except Exception as e:
         logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
         return
-
     async with aiofiles.open(local_kata_response_token, "w") as token_file:
         await token_file.write(response_json_format['continuationToken'])
     logging.info(f"INFO: Ответ получен. Успешно записан новый токен авторизации для {kata_ip}.")
@@ -237,12 +240,13 @@ def format_syslog_message(event: dict, kata_ip_address: str):
         str: Строка с отформатированным Syslog-сообщением в формате RFC3164.
     """
     priority = "<134>"
-    timestamp = datetime.fromtimestamp(event.get('Timestamp', time.time_ns()) / 1_000_000_000.0).strftime('%b %d %H:%M:%S')
+    timestamp_micro = event.get('Timestamp', int(time.time() * 1_000_000))
+    timestamp = datetime.fromtimestamp(timestamp_micro / 1_000_000.0).strftime('%b %d %H:%M:%S')
     hostname = kata_ip_address
     program = "KATA"
     message = f"{event}"
 
-    return f"{priority} {timestamp} {hostname}_API {program}: {message}"
+    return f"{priority}{timestamp} {hostname} {program}: {message}"
 
 
 async def send_to_syslog(events: list, kata_ip_address: str):
@@ -267,7 +271,7 @@ async def send_to_syslog(events: list, kata_ip_address: str):
                 await writer.drain()
 
         healthcheck_event = {
-            "Timestamp": time.time_ns(),
+            "Timestamp": time.time_ns() // 1_000,
             "Message": "Healthcheck!"
         }
 
