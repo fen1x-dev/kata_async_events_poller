@@ -41,7 +41,7 @@ You can view the service logs on the path **/opt/kata/log**
 
 ## Uninstall
 
-_Run_ **kata_api_poller_uninstaller.py** with **sudo**, as it requires access to **systemctl** and deletion of system files.
+_Run_ **kata_api_poller_uninstaller.py** using **sudo** and **not** from the /opt/kata working directory, as this requires access to **systemctl** and deletion of system files.
 ```
 sudo python3 /path/to/dir/kata_api_poller_uninstaller.py
 ```
