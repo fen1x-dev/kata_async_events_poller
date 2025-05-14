@@ -13,8 +13,8 @@ import time
 import yaml
 from datetime import datetime
 
-__version__ = "1.0.0"
-__date__ = "2025-05-06"
+__version__ = "1.0.1"
+__date__ = "2025-05-14"
 PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентами программы
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
@@ -159,9 +159,12 @@ async def fetch_events(session, kata_instance: dict):
         logging.info(f"INFO: Направлен первичный запрос в {kata_ip} для получения токена, ожидается ответ.")
 
         try:
-            if CA_FILE_PATH:
+            if os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH):
+                logging.info(f"INFO: Корневой сертификат для построения соединения с {kata_ip} успешно загружен.")
                 ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
             else:
+                logging.info(f"WARN: Файл с корневым сертификатом пуст или не обнаружен для {kata_ip},"
+                             f"будет построено необезопасное ssl соединение.")
                 ssl_context = ssl._create_unverified_context()
             ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
 
@@ -201,9 +204,12 @@ async def fetch_events(session, kata_instance: dict):
     logging.info(f"INFO: Отправление запроса в {kata_ip} с токеном, ожидается ответ.")
 
     try:
-        if CA_FILE_PATH:
+        if os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH):
+            logging.info(f"INFO: Корневой сертификат для построения соединения с {kata_ip} успешно загружен.")
             ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
         else:
+            logging.info(f"WARN: Файл с корневым сертификатом пуст или не обнаружен для {kata_ip},"
+                         f"будет построено необезопасное ssl соединение.")
             ssl_context = ssl._create_unverified_context()
         ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
 
