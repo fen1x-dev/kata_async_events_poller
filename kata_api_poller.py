@@ -13,8 +13,8 @@ import time
 import yaml
 from datetime import datetime
 
-__version__ = "1.0.1"
-__date__ = "2025-05-14"
+__version__ = "1.0.2"
+__date__ = "2025-05-27"
 PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентами программы
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
@@ -159,12 +159,12 @@ async def fetch_events(session, kata_instance: dict):
         logging.info(f"INFO: Направлен первичный запрос в {kata_ip} для получения токена, ожидается ответ.")
 
         try:
-            if os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH):
-                logging.info(f"INFO: Корневой сертификат для построения соединения с {kata_ip} успешно загружен.")
+            if CA_FILE_PATH and os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH) > 0:
+                logging.info(f"INFO: Корневой сертификат для {kata_ip} успешно загружен из {CA_FILE_PATH}.")
                 ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
             else:
-                logging.info(f"WARN: Файл с корневым сертификатом пуст или не обнаружен для {kata_ip},"
-                             f"будет построено необезопасное ssl соединение.")
+                logging.warning(f"WARN: Не найден валидный корневой сертификат для {kata_ip}. "
+                                f"Будет установлено небезопасное SSL-соединение.")
                 ssl_context = ssl._create_unverified_context()
             ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
 
@@ -204,12 +204,12 @@ async def fetch_events(session, kata_instance: dict):
     logging.info(f"INFO: Отправление запроса в {kata_ip} с токеном, ожидается ответ.")
 
     try:
-        if os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH):
-            logging.info(f"INFO: Корневой сертификат для построения соединения с {kata_ip} успешно загружен.")
+        if CA_FILE_PATH and os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH) > 0:
+            logging.info(f"INFO: Корневой сертификат для {kata_ip} успешно загружен из {CA_FILE_PATH}.")
             ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
         else:
-            logging.info(f"WARN: Файл с корневым сертификатом пуст или не обнаружен для {kata_ip},"
-                         f"будет построено необезопасное ssl соединение.")
+            logging.warning(f"WARN: Не найден валидный корневой сертификат для {kata_ip}. "
+                            f"Будет установлено небезопасное SSL-соединение.")
             ssl_context = ssl._create_unverified_context()
         ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
 
