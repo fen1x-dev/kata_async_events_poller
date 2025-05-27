@@ -7,7 +7,7 @@ A Linux service that accesses KATA via the [API](https://support.kaspersky.com/h
 mkdir /opt/kata
 ```
 
-2) _Edit_ the **KATA_PARAMS.YAML** file by substituting the necessary KATA node IP addresses and generate unique [UUIDs](https://www.uuidgenerator.net/version1)
+2) _Edit_ the **KATA_PARAMS.YAML** file by substituting the necessary KATA node IP addresses (DNS can be written instead of an IP address) and generate unique [UUIDs](https://www.uuidgenerator.net/version1)
 for them, respectively. The service can collect events from multiple KATA nodes. Also add the IP address of the device (broker) that will receive events on syslog-ng.
 The structure required for the operation of the service is presented below:
 ```
