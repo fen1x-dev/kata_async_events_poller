@@ -43,6 +43,8 @@ if not os.path.exists(KATA_POLLER_LOG_PATH):
     os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
     with open(f'{KATA_POLLER_LOG_FILE}', 'w+') as file:
         file.write(f"Создан файл для логирования сервиса {os.path.basename(__file__)}")
+else:
+    logging.debug(f"Создан файл для логирования сервиса {KATA_POLLER_LOG_FILE}.")
 
 logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s")
 
@@ -51,10 +53,14 @@ logging.info(f"Скрипт запущен: версия скрипта: {__vers
 if not os.path.exists(KATA_PARAMS_FILE):
     logging.error(f"Отсутствует файл с зависимостями {REQUIREMENTS_FILE}.")
     sys.exit(1)
+else:
+    logging.debug(f"Файл {REQUIREMENTS_FILE} с зависимостями обнаружен.")
 
 if not os.path.exists(KATA_PARAMS_FILE):
     logging.error(f"Отсутствует конфигурационный файл по пути {KATA_PARAMS_FILE}.")
     sys.exit(1)
+else:
+    logging.debug(f"Файл {KATA_PARAMS_FILE} с конфигурацией обнаружен.")
 
 # Парсинг YAML файла для получения информации о сервисах
 with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
