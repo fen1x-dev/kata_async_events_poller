@@ -7,3 +7,4 @@ kata_installations:
     UUID: 3210a18c-057f-11f0-9cd2-0242ac120002
 broker_ip: 192.168.1.4
 ca_file_path: "/path/to/your/ca_file.pem"
+logging_level: DEBUG

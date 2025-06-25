@@ -13,8 +13,8 @@ import time
 import yaml
 from datetime import datetime
 
-__version__ = "1.0.2"
-__date__ = "2025-05-27"
+__version__ = "1.0.3"
+__date__ = "2025-06-25"
 PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентами программы
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
@@ -29,67 +29,87 @@ KATA_POLLER_LOG_PATH = f"{PROGRAM_PATH}log/"  # <- директория с ло�
 KATA_POLLER_LOG_FILE = f"{KATA_POLLER_LOG_PATH}kata_poller.log"
 KATA_RESPONSE_TOKEN = "{prog_tmp_dir}kata_{kata_inst}_response_token.txt"
 SYSLOG_PORT = 514  # <- порт для отправки событий syslog в формате RFC3164
+LOG_LEVELS = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+    "CRITICAL": logging.CRITICAL
+}
 
 
 if not os.path.exists(KATA_POLLER_LOG_PATH):
     # Создание директории с логами KATA по пути /opt/kata/log
     os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
     with open(f'{KATA_POLLER_LOG_FILE}', 'w+') as file:
-        file.write(f"INFO: Создан файл для логирования сервиса {os.path.basename(__file__)}")
+        file.write(f"Создан файл для логирования сервиса {os.path.basename(__file__)}")
 
-logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(message)s")
+logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s")
 
-logging.info(f"INFO: Версия скрипта: {__version__}. Дата обновления скрипта: {__date__}.")
+logging.info(f"Скрипт запущен: версия скрипта: {__version__}, дата обновления скрипта: {__date__}.")
 
 if not os.path.exists(KATA_PARAMS_FILE):
-    logging.info(f"ERROR: Отсутствует файл с зависимостями {REQUIREMENTS_FILE}.")
+    logging.error(f"Отсутствует файл с зависимостями {REQUIREMENTS_FILE}.")
     sys.exit(1)
 
 if not os.path.exists(KATA_PARAMS_FILE):
-    logging.info(f"ERROR: Отсутствует конфигурационный файл по пути {KATA_PARAMS_FILE}.")
+    logging.error(f"Отсутствует конфигурационный файл по пути {KATA_PARAMS_FILE}.")
     sys.exit(1)
 
 # Парсинг YAML файла для получения информации о сервисах
 with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
     installations_info = yaml.safe_load(installations_info_file)
+    LOGGING_LEVEL = installations_info.get("logging_level", "INFO").upper()
+    if LOGGING_LEVEL in LOG_LEVELS:
+        logging.getLogger().setLevel(LOG_LEVELS[LOGGING_LEVEL])
+    else:
+        logging.warning(f"Параметр {LOGGING_LEVEL} - неверный. Выберите один из допустимых: "
+                        f"DEBUG, INFO, WARNING, ERROR, CRITICAL")
     KATA_INSTANCES = installations_info.get("kata_installations", None)
     if not KATA_INSTANCES:
-        logging.info(f"ERROR: Отсутствует параметр 'kata_installations' в конфигурационном файле: {KATA_PARAMS_FILE}.")
+        logging.error(f"Отсутствует параметр 'kata_installations' в конфигурационном файле: {KATA_PARAMS_FILE}.")
         sys.exit(1)
     BROKER_IP = installations_info.get("broker_ip", None)
     if not BROKER_IP:
-        logging.info(f"ERROR: Отсутствует параметр 'broker_ip' в конфигурационном файле: {KATA_PARAMS_FILE}.")
+        logging.error(f"Отсутствует параметр 'broker_ip' в конфигурационном файле: {KATA_PARAMS_FILE}.")
         sys.exit(1)
 
     for i_installation in KATA_INSTANCES:
         kata_ip_validate = i_installation.get('kata_ip_address', None)
         if not kata_ip_validate:
-            logging.info(
-                "ERROR: Отсутствует IP-адрес в массиве 'kata_installations' "
+            logging.error(
+                "Отсутствует IP-адрес в массиве 'kata_installations' "
                 f"в конфигурационном файле: {KATA_PARAMS_FILE}.")
             sys.exit(1)
         kata_uuid_validate = i_installation.get('UUID', None)
         if not kata_uuid_validate:
-            logging.info(
-                "ERROR: Отсутствует идентификатор UUID в массиве 'kata_installations' "
+            logging.error(
+                "Отсутствует идентификатор UUID в массиве 'kata_installations' "
                 f"в конфигурационном файле: {KATA_PARAMS_FILE} для инсталляции KATA с IP-адресом {kata_ip_validate}.")
             sys.exit(1)
 
     CA_FILE_PATH = installations_info.get("ca_file_path", None)
     if not CA_FILE_PATH:
-        logging.info("INFO: Файл с корневым CA не обнаружен.")
+        logging.debug("Файл с корневым CA не обнаружен.")
+    else:
+        logging.debug(f"Файл с корневым CA обнаружен по пути {CA_FILE_PATH}.")
 
-    logging.info("INFO: Успешно распаршен конфиг с параметрами для скрипта.")
+    logging.info("Успешно распаршен конфиг с параметрами для скрипта.")
 
 if not os.path.exists(TMP_PATH):
     # Создание tmp директории для токенов KATA по пути /opt/kata/tmp
     os.makedirs(TMP_PATH, exist_ok=True)
-    logging.info(f"INFO: Успешно создана tmp директория для токенов KATA по пути {TMP_PATH}.")
+    logging.info(f"Успешно создана tmp директория для токенов KATA по пути {TMP_PATH}.")
+else:
+    logging.debug(f"Директория tmp для токенов KATA по пути {TMP_PATH} обнаружена.")
+
 
 if not os.path.exists(CERT_PATH):
     # Создание cert директории с сертификатами для запросов в KATA по пути /opt/kata/cert
     os.makedirs(CERT_PATH, exist_ok=True)
-    logging.info(f"INFO: Успешно создана cert директория с сертификатами для запросов в KATA по пути {CERT_PATH}.")
+    logging.info(f"Успешно создана директория cert для сертификатов по пути {CERT_PATH}.")
+else:
+    logging.debug(f"Директория cert для сертификатов по пути {CERT_PATH} обнаружена.")
 
 
 def generating_tls_certificate():
@@ -107,7 +127,7 @@ def generating_tls_certificate():
 
     with open(f"{TLS_CERTIFICATE}", "wb") as pem_file:
         subprocess.run(["cat", f"{KATA_CERT}", f"{PRIVATE_KEY}"], stdout=pem_file)
-    logging.info("INFO: Успешно созданы: самоподписанный TLS сертификат и приватный ключ для запросов.")
+    logging.info("Успешно созданы: самоподписанный TLS сертификат и приватный ключ для запросов.")
 
     return
 
@@ -135,6 +155,7 @@ def kata_service_creator():
     subprocess.run(["sudo", "systemctl", "start", "kata_api.service"])
     subprocess.run(["sudo", "systemctl", "enable", "kata_api.service"])
 
+    logging.info(f"Сервис kata_api создан по пути {SERVICE_PATH}.")
     return
 
 
@@ -153,17 +174,16 @@ async def fetch_events(session, kata_instance: dict):
 
     local_kata_response_token = KATA_RESPONSE_TOKEN.format(prog_tmp_dir=TMP_PATH, kata_inst=kata_ip)
 
-    if not os.path.exists(local_kata_response_token) or not os.path.getsize(local_kata_response_token):
+    if not os.path.exists(local_kata_response_token) or not os.path.getsize(local_kata_response_token) > 0:
         # Проверка на наличие токена (если его нет, то инициируется первый запрос, в котором вернётся токен)
-        logging.info(f"INFO: Токен авторизации для хоста {kata_ip} не обнаружен.")
-        logging.info(f"INFO: Направлен первичный запрос в {kata_ip} для получения токена, ожидается ответ.")
+        logging.info(f"Направлен первичный запрос в {kata_ip} для получения токена, ожидается ответ.")
 
         try:
             if CA_FILE_PATH and os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH) > 0:
-                logging.info(f"INFO: Корневой сертификат для {kata_ip} успешно загружен из {CA_FILE_PATH}.")
+                logging.debug(f"Корневой сертификат для {kata_ip} успешно загружен из {CA_FILE_PATH}.")
                 ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
             else:
-                logging.warning(f"WARN: Не найден валидный корневой сертификат для {kata_ip}. "
+                logging.warning(f"Не найден валидный корневой сертификат для {kata_ip}. "
                                 f"Будет установлено небезопасное SSL-соединение.")
                 ssl_context = ssl._create_unverified_context()
             ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
@@ -174,17 +194,21 @@ async def fetch_events(session, kata_instance: dict):
                 response_json_format = json.loads(response_text)
         except aiohttp.ClientResponseError as e:
             if e.status == 401:
-                logging.info("WARN: Статус - Unauthorized. "
+                logging.warning("Статус - Unauthorized. "
                              "Ожидается подтверждение администратором KATA обработки запросов от внешней системы"
                              f" на хосте {kata_ip}")
             else:
-                logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
-                sys.exit(1)
+                logging.error(f"Ошибка при получении данных от {kata_ip}: {e}")
+                return
+        except Exception as e:
+            logging.error(f"Ошибка при получении данных от {kata_ip}: {e}")
+            return
+
 
         async with aiofiles.open(local_kata_response_token, "w") as token_file:
             await token_file.write(response_json_format.get("continuationToken"))
 
-        logging.info(f"INFO: Ответ получен. Успешно получен токен авторизации для хоста {kata_ip}.")
+        logging.info(f"Ответ получен. Успешно записан новый токен авторизации для хоста {kata_ip}.")
 
         await send_to_syslog(response_json_format.get("events"), kata_ip)
 
@@ -192,23 +216,24 @@ async def fetch_events(session, kata_instance: dict):
     if os.path.exists(local_kata_response_token):
         async with aiofiles.open(local_kata_response_token, "r") as f:
             continuation_token = (await f.read()).strip()
+        logging.debug(f"Токен авторизации для хоста {kata_ip} обнаружен.")
     else:
-        logging.info(f"ERROR: Отсутствует токен авторизации для хоста {kata_ip}.")
-        sys.exit(1)
+        logging.error(f"Отсутствует токен авторизации для хоста {kata_ip}.")
+        return
 
     kata_req_params = {
         "max_timeout": "PT60S",
         "continuation_token": continuation_token
     }
 
-    logging.info(f"INFO: Отправление запроса в {kata_ip} с токеном, ожидается ответ.")
+    logging.info(f"Отправление запроса в {kata_ip} с токеном, ожидается ответ.")
 
     try:
         if CA_FILE_PATH and os.path.exists(CA_FILE_PATH) and os.path.getsize(CA_FILE_PATH) > 0:
-            logging.info(f"INFO: Корневой сертификат для {kata_ip} успешно загружен из {CA_FILE_PATH}.")
+            logging.debug(f"Корневой сертификат для {kata_ip} успешно загружен из {CA_FILE_PATH}.")
             ssl_context = ssl.create_default_context(cafile=CA_FILE_PATH)
         else:
-            logging.warning(f"WARN: Не найден валидный корневой сертификат для {kata_ip}. "
+            logging.warning(f"Не найден валидный корневой сертификат для {kata_ip}. "
                             f"Будет установлено небезопасное SSL-соединение.")
             ssl_context = ssl._create_unverified_context()
         ssl_context.load_cert_chain(certfile=TLS_CERTIFICATE, keyfile=PRIVATE_KEY)
@@ -219,18 +244,19 @@ async def fetch_events(session, kata_instance: dict):
             response_json_format = json.loads(response_text)
     except aiohttp.ClientResponseError as e:
         if e.status == 401:
-            logging.info(f"WARN: Статус: Unauthorized. Пропал доступ к API на хосте {kata_ip}. "
+            logging.warning(f"Статус: Unauthorized. Пропал доступ к API на хосте {kata_ip}. "
                          "Ожидается подтверждение администратором KATA обработки запросов от внешней системы.")
         else:
-            logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
+            logging.error(f"Ошибка при получении данных от {kata_ip}: {e}")
+        return
+    except Exception as e:
+        logging.error(f"Ошибка при получении данных от {kata_ip}: {e}")
         return
 
-    except Exception as e:
-        logging.error(f"ERROR: Ошибка при получении данных от {kata_ip}: {e}")
-        return
     async with aiofiles.open(local_kata_response_token, "w") as token_file:
         await token_file.write(response_json_format['continuationToken'])
-    logging.info(f"INFO: Ответ получен. Успешно записан новый токен авторизации для {kata_ip}.")
+    logging.info(f"Ответ получен от {kata_ip}.")
+    logging.debug(f"Успешно записан новый токен авторизации для {kata_ip}.")
 
     await send_to_syslog(response_json_format.get("events"), kata_ip)
 
@@ -284,15 +310,15 @@ async def send_to_syslog(events: list, kata_ip_address: str):
         healthcheck_message = format_syslog_message(healthcheck_event, kata_ip_address)
         writer.write(healthcheck_message.encode('utf-8') + b'\n')
         await writer.drain()
-        logging.info(f"INFO: Отправлено healthcheck-сообщение c KATA {kata_ip_address} на syslog-сервер.")
+        logging.debug(f"Отправлено healthcheck-сообщение c KATA {kata_ip_address} на syslog-сервер.")
 
-        logging.info(f"INFO: Все события c KATA {kata_ip_address} отправлены на порт {SYSLOG_PORT}/TCP брокера.")
+        logging.info(f"Все события c KATA {kata_ip_address} отправлены на порт {SYSLOG_PORT}/TCP брокера.")
 
         writer.close()
         await writer.wait_closed()
 
     except Exception as e:
-        logging.error(f"Ошибка при отправке Syslog-сообщений c KATA {kata_ip_address} : {e}")
+        logging.error(f"Ошибка при отправке Syslog-сообщений c KATA {kata_ip_address}: {e}")
 
 
 async def kata_async_request(session, kata_instance: dict):
@@ -319,19 +345,21 @@ if __name__ == "__main__":
     if not os.path.exists(SERVICE_PATH) or not os.path.getsize(SERVICE_PATH) > 0:
         # Проверка на наличие сервиса
         kata_service_creator()
-        logging.info("INFO: Сервис kata_api успешно создан.")
+    else:
+        logging.debug(f"Сервис kata_api создан по пути {SERVICE_PATH}.")
 
     if not os.path.exists(TLS_CERTIFICATE) or not os.path.exists(PRIVATE_KEY):
         # Проверка на наличие сертификата и ключа
         generating_tls_certificate()
-    logging.info("INFO: TLS сертификат и приватный ключ обнаружены.")
+    else:
+        logging.debug("TLS сертификат и приватный ключ обнаружены.")
 
     asyncio.run(main())
 
     if os.path.exists(KATA_POLLER_LOG_FILE) and os.path.getsize(KATA_POLLER_LOG_FILE) > 5 * 1024 * 1024:
         # Очистка лог файла, если размер > 5 МБ
         open(KATA_POLLER_LOG_FILE, "w").close()
-        logging.info("INFO: Файл логов очищен, так как его размер превышал 5 МБ.")
+        logging.info("Файл логов очищен, так как его размер превышал 5 МБ.")
 
-    logging.info("INFO: Скрипт успешно завершил свою работу.")
+    logging.info("Скрипт успешно завершил свою работу.")
     sys.exit(0)
