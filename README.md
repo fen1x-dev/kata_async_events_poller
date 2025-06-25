@@ -25,18 +25,49 @@ broker_ip: 192.168.1.4
 ca_file_path: "/path/to/your/ca_file.ca"
 ```
 
-4) It is necessary to _install_ dependencies **requirements.txt**
+3) It is necessary to _install_ dependencies **requirements.txt**
 ```
 pip install -r requirements.txt
 ```
 
-5) _Run_ the script from under **sudo** rights
+4) _Run_ the script from under **sudo** rights
 ```
 sudo python3 /opt/kata/kata_api_poller.py  # The file name can be any
 ```
 
-## DEBUG
+## UPDATING
+When updating the service version, you must perform the following steps:
+1) Stop the service:
+```
+sudo systemctl stop kata_api.service
+```
 
+2) Migration of a new script:
+```
+sudo cp /path/to/new/kata_api_poller.py /opt/kata/kata_api_poller.py
+sudo chmod +x /opt/kata/kata_api_poller.py
+```
+
+3) Reboot the systemd configuration:
+```
+sudo systemctl daemon-reload
+```
+
+4) Starting the service:
+```
+sudo systemctl start kata_api.service
+```
+
+5) Checking the service:
+```
+sudo systemctl status kata_api.service
+```
+
+## DEBUG
+For the DEBUG log level required in KATA_PARAMS.YAML add parameter
+```
+logging_level: DEBUG
+```
 You can view the service logs on the path **/opt/kata/log**
 
 ## Uninstall
