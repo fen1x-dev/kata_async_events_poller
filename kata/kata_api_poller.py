@@ -13,8 +13,8 @@ import time
 import yaml
 from datetime import datetime
 
-__version__ = "1.0.3"
-__date__ = "2025-06-25"
+__version__ = "1.0.4"
+__date__ = "2025-07-02"
 PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентами программы
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
@@ -43,18 +43,20 @@ if not os.path.exists(KATA_POLLER_LOG_PATH):
     os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
     with open(f'{KATA_POLLER_LOG_FILE}', 'w+') as file:
         file.write(f"Создан файл для логирования сервиса {os.path.basename(__file__)}")
-else:
-    logging.debug(f"Создан файл для логирования сервиса {KATA_POLLER_LOG_FILE}.")
 
-logging.basicConfig(filename=KATA_POLLER_LOG_FILE, level=logging.INFO, format="%(asctime)s - %(levelname)s: %(message)s")
+logger = logging.getLogger()
+logger.setLevel(LOG_LEVELS.get("INFO"))
+
+formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
+
+file_handler = logging.FileHandler(KATA_POLLER_LOG_FILE)
+file_handler.setFormatter(formatter)
+file_handler.setLevel(LOG_LEVELS.get("INFO"))
+
+if not logger.hasHandlers():
+    logger.addHandler(file_handler)
 
 logging.info(f"Скрипт запущен: версия скрипта: {__version__}, дата обновления скрипта: {__date__}.")
-
-if not os.path.exists(KATA_PARAMS_FILE):
-    logging.error(f"Отсутствует файл с зависимостями {REQUIREMENTS_FILE}.")
-    sys.exit(1)
-else:
-    logging.debug(f"Файл {REQUIREMENTS_FILE} с зависимостями обнаружен.")
 
 if not os.path.exists(KATA_PARAMS_FILE):
     logging.error(f"Отсутствует конфигурационный файл по пути {KATA_PARAMS_FILE}.")
@@ -64,10 +66,14 @@ else:
 
 # Парсинг YAML файла для получения информации о сервисах
 with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
+    # TODO Вынести валидацию YAML конфига в отдельную функцию
+    # TODO Добавить валидацию IP-адреса
     installations_info = yaml.safe_load(installations_info_file)
     LOGGING_LEVEL = installations_info.get("logging_level", "INFO").upper()
     if LOGGING_LEVEL in LOG_LEVELS:
-        logging.getLogger().setLevel(LOG_LEVELS[LOGGING_LEVEL])
+        level = LOG_LEVELS.get(LOGGING_LEVEL, logging.INFO)
+        logger.setLevel(level)
+        file_handler.setLevel(level)
     else:
         logging.warning(f"Параметр {LOGGING_LEVEL} - неверный. Выберите один из допустимых: "
                         f"DEBUG, INFO, WARNING, ERROR, CRITICAL")
