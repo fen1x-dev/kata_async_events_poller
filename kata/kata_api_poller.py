@@ -12,9 +12,10 @@ import sys
 import time
 import yaml
 from datetime import datetime
+from logging.handlers import TimedRotatingFileHandler
 
-__version__ = "1.0.4"
-__date__ = "2025-07-02"
+__version__ = "1.0.5"
+__date__ = "2025-07-23"
 PROGRAM_PATH = "/opt/kata/"  # <- директория с компонентами программы
 KATA_PARAMS_FILE = f"{PROGRAM_PATH}KATA_PARAMS.YAML"
 REQUIREMENTS_FILE = f"{PROGRAM_PATH}requirements.txt"
@@ -37,19 +38,22 @@ LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL
 }
 
-
-if not os.path.exists(KATA_POLLER_LOG_PATH):
-    # Создание директории с логами KATA по пути /opt/kata/log
-    os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
-    with open(f'{KATA_POLLER_LOG_FILE}', 'w+') as file:
-        file.write(f"Создан файл для логирования сервиса {os.path.basename(__file__)}")
-
 logger = logging.getLogger()
 logger.setLevel(LOG_LEVELS.get("INFO"))
 
+file_handler = TimedRotatingFileHandler(
+    filename=KATA_POLLER_LOG_FILE,
+    when="midnight",
+    interval=1,
+    backupCount=7,
+    encoding='utf-8',
+    utc=False
+)
+
+file_handler.suffix = "%Y-%m-%d"
+
 formatter = logging.Formatter("%(asctime)s - %(levelname)s: %(message)s")
 
-file_handler = logging.FileHandler(KATA_POLLER_LOG_FILE)
 file_handler.setFormatter(formatter)
 file_handler.setLevel(LOG_LEVELS.get("INFO"))
 
@@ -367,11 +371,6 @@ if __name__ == "__main__":
         logging.debug("TLS сертификат и приватный ключ обнаружены.")
 
     asyncio.run(main())
-
-    if os.path.exists(KATA_POLLER_LOG_FILE) and os.path.getsize(KATA_POLLER_LOG_FILE) > 5 * 1024 * 1024:
-        # Очистка лог файла, если размер > 5 МБ
-        open(KATA_POLLER_LOG_FILE, "w").close()
-        logging.info("Файл логов очищен, так как его размер превышал 5 МБ.")
 
     logging.info("Скрипт успешно завершил свою работу.")
     sys.exit(0)
