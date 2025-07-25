@@ -1,6 +1,6 @@
 # KATA_API_POLLER
 ## SYSTEM REQUIREMENTS
-System requirements for a host(VM) with an event collection service
+System requirements for a Host (VM) with an event collection service
 | CPU (Cores) | RAM  | DISK SIZE |
 | :-:         | :--: | :-------: |
 |  4          | 8 Gb |   50 Gb   |
