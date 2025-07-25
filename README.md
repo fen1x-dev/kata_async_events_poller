@@ -1,4 +1,9 @@
 # KATA_API_POLLER
+## SYSTEM REQUIREMENTS
+System requirements for a host with an event collection service
+| CPU (Cores) | RAM  | DISK SIZE |
+| :-: | :--: | :-------: |
+|  4  | 8 Gb |   50 Gb   |
 ## INSTALLATION
 A Linux service that accesses KATA via the [API](https://support.kaspersky.com/help/KATA/7.0/ru-RU/248951.htm) and receives events, after which it sends the received events to 514/UDP port syslog-ng
 
