@@ -18,11 +18,12 @@ def stop_and_remove_service():
 
 def remove_kata_directory():
     """Удаляет каталог /opt/kata и всё его содержимое."""
-    if os.path.exists(PROGRAMM_PATH):
-        shutil.rmtree(PROGRAMM_PATH)
-        print(f"Каталог {PROGRAMM_PATH} полностью удалён.")
+    if os.path.exists(PROGRAM_PATH):
+        shutil.rmtree(PROGRAM_PATH)
+        print(f"Каталог {PROGRAM_PATH} полностью удалён.")
     else:
-        print(f"Каталог {PROGRAMM_PATH} не найден.")
+        print(f"Каталог {PROGRAM_PATH} не найден.")
+
 
 if __name__ == "__main__":
     stop_and_remove_service()
