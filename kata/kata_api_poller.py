@@ -38,6 +38,11 @@ LOG_LEVELS = {
     "CRITICAL": logging.CRITICAL
 }
 
+if not os.path.exists(KATA_POLLER_LOG_PATH):
+    # Создание log директории для логов программы
+    os.makedirs(KATA_POLLER_LOG_PATH, exist_ok=True)
+
+
 logger = logging.getLogger()
 logger.setLevel(LOG_LEVELS.get("INFO"))
 
