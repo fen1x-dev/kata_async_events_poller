@@ -74,48 +74,56 @@ else:
     logging.debug(f"Файл {KATA_PARAMS_FILE} с конфигурацией обнаружен.")
 
 # Парсинг YAML файла для получения информации о сервисах
-with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
-    # TODO Вынести валидацию YAML конфига в отдельную функцию
-    # TODO Добавить валидацию IP-адреса
-    installations_info = yaml.safe_load(installations_info_file)
-    LOGGING_LEVEL = installations_info.get("logging_level", "INFO").upper()
-    if LOGGING_LEVEL in LOG_LEVELS:
-        level = LOG_LEVELS.get(LOGGING_LEVEL, logging.INFO)
-        logger.setLevel(level)
-        file_handler.setLevel(level)
-    else:
-        logging.warning(f"Параметр {LOGGING_LEVEL} - неверный. Выберите один из допустимых: "
-                        f"DEBUG, INFO, WARNING, ERROR, CRITICAL")
-    KATA_INSTANCES = installations_info.get("kata_installations", None)
-    if not KATA_INSTANCES:
-        logging.error(f"Отсутствует параметр 'kata_installations' в конфигурационном файле: {KATA_PARAMS_FILE}.")
-        sys.exit(1)
-    BROKER_IP = installations_info.get("broker_ip", None)
-    if not BROKER_IP:
-        logging.error(f"Отсутствует параметр 'broker_ip' в конфигурационном файле: {KATA_PARAMS_FILE}.")
-        sys.exit(1)
-
-    for i_installation in KATA_INSTANCES:
-        kata_ip_validate = i_installation.get('kata_ip_address', None)
-        if not kata_ip_validate:
-            logging.error(
-                "Отсутствует IP-адрес в массиве 'kata_installations' "
-                f"в конфигурационном файле: {KATA_PARAMS_FILE}.")
+try:
+    with open(KATA_PARAMS_FILE, 'r') as installations_info_file:
+        # TODO Вынести валидацию YAML конфига в отдельную функцию
+        # TODO Добавить валидацию IP-адреса
+        installations_info = yaml.safe_load(installations_info_file)
+        LOGGING_LEVEL = installations_info.get("logging_level", "INFO").upper()
+        if LOGGING_LEVEL in LOG_LEVELS:
+            level = LOG_LEVELS.get(LOGGING_LEVEL, logging.INFO)
+            logger.setLevel(level)
+            file_handler.setLevel(level)
+        else:
+            logging.warning(f"Параметр {LOGGING_LEVEL} - неверный. Выберите один из допустимых: "
+                            f"DEBUG, INFO, WARNING, ERROR, CRITICAL")
+        KATA_INSTANCES = installations_info.get("kata_installations", None)
+        if not KATA_INSTANCES:
+            logging.error(f"Отсутствует параметр 'kata_installations' в конфигурационном файле: {KATA_PARAMS_FILE}.")
             sys.exit(1)
-        kata_uuid_validate = i_installation.get('UUID', None)
-        if not kata_uuid_validate:
-            logging.error(
-                "Отсутствует идентификатор UUID в массиве 'kata_installations' "
-                f"в конфигурационном файле: {KATA_PARAMS_FILE} для инсталляции KATA с IP-адресом {kata_ip_validate}.")
+        BROKER_IP = installations_info.get("broker_ip", None)
+        if not BROKER_IP:
+            logging.error(f"Отсутствует параметр 'broker_ip' в конфигурационном файле: {KATA_PARAMS_FILE}.")
             sys.exit(1)
 
-    CA_FILE_PATH = installations_info.get("ca_file_path", None)
-    if not CA_FILE_PATH:
-        logging.debug("Файл с корневым CA не обнаружен.")
-    else:
-        logging.debug(f"Файл с корневым CA обнаружен по пути {CA_FILE_PATH}.")
+        for i_installation in KATA_INSTANCES:
+            kata_ip_validate = i_installation.get('kata_ip_address', None)
+            if not kata_ip_validate:
+                logging.error(
+                    "Отсутствует IP-адрес в массиве 'kata_installations' "
+                    f"в конфигурационном файле: {KATA_PARAMS_FILE}.")
+                sys.exit(1)
+            kata_uuid_validate = i_installation.get('UUID', None)
+            if not kata_uuid_validate:
+                logging.error(
+                    "Отсутствует идентификатор UUID в массиве 'kata_installations' "
+                    f"в конфигурационном файле: {KATA_PARAMS_FILE} для инсталляции KATA с IP-адресом {kata_ip_validate}.")
+                sys.exit(1)
 
-    logging.info("Успешно распаршен конфиг с параметрами для скрипта.")
+        CA_FILE_PATH = installations_info.get("ca_file_path", None)
+        if not CA_FILE_PATH:
+            logging.debug("Файл с корневым CA не обнаружен.")
+        else:
+            logging.debug(f"Файл с корневым CA обнаружен по пути {CA_FILE_PATH}.")
+
+        logging.info("Успешно распаршен конфиг с параметрами для скрипта.")
+
+except yaml.parser.ParserError:
+    logging.error(f"Ошибка синтаксиса конфигурационного {KATA_PARAMS_FILE} файла.")
+    sys.exit(1)
+except Exception as e:
+    logging.error(f"Ошибка открытия {KATA_PARAMS_FILE} файла: {e}")
+    sys.exit(1)
 
 if not os.path.exists(TMP_PATH):
     # Создание tmp директории для токенов KATA по пути /opt/kata/tmp
