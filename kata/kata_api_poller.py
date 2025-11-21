@@ -305,7 +305,7 @@ def format_syslog_message(event: dict, kata_ip_address: str):
     timestamp = datetime.fromtimestamp(timestamp_micro / 1_000_000.0).strftime('%b %d %H:%M:%S')
     hostname = kata_ip_address
     program = "KATA"
-    message = f"{event}"
+    message = f"{json.dumps(event)}"
 
     return f"{priority}{timestamp} {hostname} {program}: {message}"
 
