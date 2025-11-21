@@ -7,6 +7,8 @@ System requirements for a Host (VM) with an event collection service
 ## INSTALLATION
 A Linux service that accesses KATA via the [API](https://support.kaspersky.com/help/KATA/7.0/ru-RU/248951.htm) and receives events, after which it sends the received events to 514/UDP port syslog-ng
 
+It is possible to select a version specifically for MP SIEM. To do this, select the MPSIEM branch
+
 1) Create a folder on the path **/opt/kata** and put all the files from the repository there:
 ```
 mkdir /opt/kata
